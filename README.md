@@ -7,7 +7,7 @@ This is the simplest multi-wrapper for russian sms services.
 - smsc.ru
 
 ## How to use
-```
+```go
 package main
 
 import (
