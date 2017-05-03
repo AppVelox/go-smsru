@@ -1,12 +1,14 @@
 package sms
 
 import (
-	"net/http"
+	//"net/http"
 	"net/url"
 	"io/ioutil"
 	"log"
 	"encoding/json"
+	//"strconv"
 	"strconv"
+	"errors"
 )
 
 const SMSCRU_API_URL = "https://smsc.ru"
@@ -25,27 +27,6 @@ var SMSCcodeStatus map[int]string = map[int]string{
 	25: "Inaccessible number",
 }
 
-func NewSmsCRuClient(login string, password string, sender string) *SmsCRuClient {
-
-	c := &SmsCRuClient{
-		ApiLogin:    login,
-		ApiPassword: password,
-		Http:        &http.Client{},
-		Sender:      sender,
-	}
-	return c
-}
-
-// NewSms creates a new message
-
-func (c *SmsCRuClient) NewSms(to string, text string) *SmsC {
-	return &SmsC{
-		Phone:  to,
-		Mes:    text,
-		Sender: c.Sender,
-		Format: "3",
-	}
-}
 
 func (c *SmsCRuClient) makeRequest(endpoint string, params url.Values) (Response, []byte, error) {
 	params.Set("login", c.ApiLogin)
@@ -68,14 +49,14 @@ func (c *SmsCRuClient) makeRequest(endpoint string, params url.Values) (Response
 
 }
 
-// SmsSend will send a Sms item to Service
-func (c *SmsCRuClient) SmsSend(p *SmsC) (Response, error) {
+
+
+func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 	var params = url.Values{}
 
 	params.Set("phones", p.Phone)
-	params.Set("fmt", p.Format)
-
-	params.Set("mes", p.Mes)
+	params.Set("fmt", "3")
+	params.Set("mes", p.Message)
 
 	if len(p.Sender) > 0 {
 		params.Set("sender", p.Sender)
@@ -89,8 +70,8 @@ func (c *SmsCRuClient) SmsSend(p *SmsC) (Response, error) {
 	var f struct {
 		Id        int          `json:"id"`
 		Cnt       int          `json:"cnt"`
-		Error     string          `json:"error"`
-		ErrorCode int      `json:"error_code"`
+		Error     string       `json:"error"`
+		ErrorCode int          `json:"error_code"`
 	}
 
 	err = json.Unmarshal(body, &f)
@@ -106,14 +87,16 @@ func (c *SmsCRuClient) SmsSend(p *SmsC) (Response, error) {
 	}
 
 	if len(f.Error) > 0 {
-		res.Status = f.Error
-		return res, nil
+		//res.Status = f.Error
+		return Response{}, errors.New(f.Error)
 	} else {
 		res.Status = "OK"
 	}
 
 	return res, nil
 }
+
+
 
 // SmsStatus will get a status of message
 func (c *SmsCRuClient) SmsStatus(id string, phone string) (Response, error) {
@@ -129,7 +112,6 @@ func (c *SmsCRuClient) SmsStatus(id string, phone string) (Response, error) {
 
 	var f interface{}
 
-
 	err = json.Unmarshal(body, &f)
 
 	if err != nil {
@@ -143,7 +125,7 @@ func (c *SmsCRuClient) SmsStatus(id string, phone string) (Response, error) {
 	}
 
 	if val, ok := m["error"]; ok {
-		res.Status = val.(string)
+		return Response{}, errors.New(val.(string))
 	}
 
 	res.Id = id

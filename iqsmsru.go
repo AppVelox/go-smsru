@@ -1,40 +1,16 @@
 package sms
 
 import (
-	"time"
-	"strconv"
 	"fmt"
 	"errors"
 	"net/url"
 	"io/ioutil"
 	"log"
 	"strings"
-	"net/http"
 )
 
 const IQSMSRU_API_URL = "http://gate.iqsms.ru"
 
-
-func NewIQSmsRuClient(login string, password string,sender string) *IQSMSRuClient {
-
-	c := &IQSMSRuClient{
-		ApiLogin:   login,
-		ApiPassword: password,
-		Http:        &http.Client{},
-		Sender:      sender,
-	}
-
-	return c
-}
-
-
-func(c *IQSMSRuClient) NewSms(phone string, text string) *IQSms{
-	return &IQSms{
-		Phone:   phone,
-		Text: text,
-		Sender: c.Sender,
-	}
-}
 
 func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Response, error) {
 	params.Set("login", c.ApiLogin)
@@ -70,30 +46,19 @@ func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Respons
 
 }
 
-func (c *IQSMSRuClient) SmsSend(p *IQSms) (Response, error) {
+
+
+
+
+
+func (c *IQSMSRuClient) SmsSend(p *CommonSms) (Response, error) {
 	var params = url.Values{}
 
 	params.Set("phone", p.Phone)
-	params.Set("text", p.Text)
-
-	if len(p.WapUrl) > 0 {
-		params.Set("wapurl", p.WapUrl)
-	}
+	params.Set("text", p.Message)
 
 	if len(p.Sender) > 0 {
 		params.Set("sender", p.Sender)
-	}
-
-	if len(p.Flash) > 0 {
-		params.Set("flash", p.Flash)
-	}
-
-	if p.ScheduleTime.After(time.Now()) {
-		val := strconv.FormatInt(p.ScheduleTime.Unix(), 10)
-		params.Set("scheduleTime", val)
-	}
-	if len(p.StatusQueueName) > 0 {
-		params.Set("statusQueueName", p.StatusQueueName)
 	}
 
 	res, err := c.makeRequest("/send", params)
@@ -106,8 +71,8 @@ func (c *IQSMSRuClient) SmsSend(p *IQSms) (Response, error) {
 	return res, nil
 }
 
-// SmsStatus will get a status of message
-func (c *IQSMSRuClient) SmsStatus(id string) (Response, error) {
+// //SmsStatus will get a status of message
+func (c *IQSMSRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params := url.Values{}
 	params.Set("id", id)
 
@@ -115,6 +80,7 @@ func (c *IQSMSRuClient) SmsStatus(id string) (Response, error) {
 	if err != nil {
 		return Response{}, err
 	}
+	res.Phone = phone
 
 	return res, nil
 }

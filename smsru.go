@@ -4,10 +4,8 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
 	"strconv"
-	"time"
 )
 
 const SMSRU_API_URL = "http://sms.ru"
@@ -54,40 +52,19 @@ var error_internal = errors.New("Internal Error")
 var error_no_response = errors.New("Something went wrong")
 
 
-// id is your api_id
-func NewSmsRuClient(apiId string, sender string) *SmsRuClient {
-
-	c := &SmsRuClient{
-		ApiId: apiId,
-		Http:  &http.Client{},
-		From:  sender,
-	}
-
-	return c
-}
-
-
-// NewSms creates a new message
-
-func (c *SmsRuClient) NewSms(to string, text string) *Sms {
-	return &Sms{
-		To:   to,
-		Text: text,
-		From: c.From,
-	}
-}
-
 
 func (c *SmsRuClient) makeRequest(endpoint string, params url.Values) (Response, []string, error) {
 	params.Set("api_id", c.ApiId)
 	url := SMSRU_API_URL + endpoint + "?" + params.Encode()
-
 	resp, err := c.Http.Get(url)
+
 	if err != nil {
 		return Response{}, nil, err
 	}
 	defer resp.Body.Close()
 
+
+	//Scanning body
 	sc := bufio.NewScanner(resp.Body)
 	var lines []string
 	for sc.Scan() {
@@ -113,40 +90,16 @@ func (c *SmsRuClient) makeRequest(endpoint string, params url.Values) (Response,
 	return res, lines, nil
 }
 
-// SmsSend will send a Sms item to Service
-func (c *SmsRuClient) SmsSend(p *Sms) (Response, error) {
+
+
+
+func (c *SmsRuClient) SmsSend(p *CommonSms) (Response, error) {
 	var params = url.Values{}
+	params.Set("to", p.Phone)
+	params.Set("text", p.Message)
 
-	if len(p.Multi) > 0 {
-		for to, text := range p.Multi {
-			key := fmt.Sprintf("multi[%s]", to)
-			params.Add(key, text)
-		}
-	} else {
-		params.Set("to", p.To)
-		params.Set("text", p.Text)
-	}
-
-	if len(p.From) > 0 {
-		params.Set("from", p.From)
-	}
-
-	if p.PartnerId > 0 {
-		val := strconv.Itoa(p.PartnerId)
-		params.Set("partner_id", val)
-	}
-
-	if p.Test {
-		params.Set("test", "1")
-	}
-
-	if p.Time.After(time.Now()) {
-		val := strconv.FormatInt(p.Time.Unix(), 10)
-		params.Set("time", val)
-	}
-
-	if p.Translit {
-		params.Set("translit", "1")
+	if len(p.Sender) > 0 {
+		params.Set("from", p.Sender)
 	}
 
 	res, lines, err := c.makeRequest("/sms/send", params)
@@ -155,12 +108,15 @@ func (c *SmsRuClient) SmsSend(p *Sms) (Response, error) {
 	}
 
 	res.Id = lines[1]
-	res.Phone = p.To
+	res.Phone = p.Phone
 	return res, nil
 }
 
-// SmsStatus will get a status of message
-func (c *SmsRuClient) SmsStatus(id string) (Response, error) {
+
+
+
+ //SmsStatus will get a status of message
+func (c *SmsRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params := url.Values{}
 	params.Set("id", id)
 
@@ -170,6 +126,7 @@ func (c *SmsRuClient) SmsStatus(id string) (Response, error) {
 	}
 
 	res.Id = id
+	res.Phone = phone
 
 	return res, nil
 }
