@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"log"
 )
 
 const SMSRU_API_URL = "http://sms.ru"
@@ -49,8 +50,16 @@ var codeStatus map[int]string = map[int]string{
 }
 
 var error_internal = errors.New("Internal Error")
-var error_no_response = errors.New("Something went wrong")
+var error_no_response = errors.New("Something went wrong. No response")
 
+
+func (c *SmsRuClient) NewSms(to string, text string) *CommonSms {
+	return &CommonSms{
+		Phone:   to,
+		Message: text,
+		Sender: c.Sender,
+	}
+}
 
 
 func (c *SmsRuClient) makeRequest(endpoint string, params url.Values) (Response, []string, error) {
@@ -102,6 +111,8 @@ func (c *SmsRuClient) SmsSend(p *CommonSms) (Response, error) {
 		params.Set("from", p.Sender)
 	}
 
+	log.Printf("Trying to send message: '%s' to %s",p.Message,p.Phone)
+
 	res, lines, err := c.makeRequest("/sms/send", params)
 	if err != nil {
 		return Response{}, err
@@ -119,6 +130,8 @@ func (c *SmsRuClient) SmsSend(p *CommonSms) (Response, error) {
 func (c *SmsRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params := url.Values{}
 	params.Set("id", id)
+
+	log.Printf("Trying to get status of message: '%s'",id)
 
 	res, _, err := c.makeRequest("/sms/status", params)
 	if err != nil {

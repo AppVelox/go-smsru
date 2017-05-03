@@ -2,31 +2,16 @@ package sms
 
 import (
 	"net/http"
-	"time"
 	"errors"
 )
 
 var error_no_backend = errors.New("No such backend")
 
-//types for sms.ru
 type SmsRuClient struct {
 	ApiId  string       `json:"api_id"`
 	Http   *http.Client `json:"-"`
 	Sender string         `json:"from"`
 }
-
-type Sms struct {
-	To        string            `json:"to"`
-	Text      string            `json:"text"`
-	Translit  bool              `json:"translit"`
-	Multi     map[string]string `json:"multi"`
-	From      string            `json:"from"`
-	Time      time.Time         `json:"time"`
-	Test      bool              `json:"test"`
-	PartnerId int               `json:"partner_id"`
-}
-
-//types for iqsms.ru
 
 type IQSMSRuClient struct {
 	ApiLogin    string       `json:"login"`
@@ -35,30 +20,11 @@ type IQSMSRuClient struct {
 	Sender      string       `json:"sender"`
 }
 
-type IQSms struct {
-	Phone           string            `json:"phone"`
-	Text            string            `json:"text"`
-	WapUrl          string            `json:"wapurl"`
-	Sender          string            `json:"sender"`
-	Flash           string            `json:"flash"`
-	ScheduleTime    time.Time      `json:"scheduleTime"`
-	StatusQueueName string      `json:"statusQueueName"`
-}
-
-//types for smsc.ru
-
 type SmsCRuClient struct {
 	ApiLogin    string       `json:"login"`
 	ApiPassword string       `json:"psw"`
 	Http        *http.Client `json:"-"`
 	Sender      string       `json:"sender"`
-}
-
-type SmsC struct {
-	Phone  string            `json:"phones"`
-	Mes    string             `json:"mes"`
-	Sender string            `json:"sender"`
-	Format string            `json:"fmt"`
 }
 
 type Response struct {
@@ -86,15 +52,16 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 		switch val {
 
 		case "smsru":
+
 			var c SMSClient = &SmsRuClient{}
 			smsruClient := c.(*SmsRuClient)
 			smsruClient.Http = &http.Client{}
 			smsruClient.ApiId = backendInfo["api_key"].(string)
 			smsruClient.Sender = backendInfo["sender"].(string)
-
 			return smsruClient, nil
 
 		case "iqsmsru":
+
 			var c SMSClient = &IQSMSRuClient{}
 			iqsmsruClient := c.(*IQSMSRuClient)
 			iqsmsruClient.Http = &http.Client{}
@@ -103,6 +70,7 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 			iqsmsruClient.Sender = backendInfo["sender"].(string)
 			return iqsmsruClient, nil
 		case "smscru":
+
 			var c SMSClient = &SmsCRuClient{}
 			smscruClient := c.(*SmsCRuClient)
 			smscruClient.Http = &http.Client{}
@@ -111,7 +79,6 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 			smscruClient.Sender = backendInfo["sender"].(string)
 			return smscruClient, nil
 		}
-
 	}
 
 	return nil, error_no_backend
@@ -119,27 +86,4 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 }
 
 
-func (c *SmsRuClient) NewSms(to string, text string) *CommonSms {
-	return &CommonSms{
-		Phone:   to,
-		Message: text,
-		Sender: c.Sender,
-	}
-}
-
-func (c *IQSMSRuClient) NewSms(to string, text string) *CommonSms {
-	return &CommonSms{
-		Phone:   to,
-		Message: text,
-		Sender: c.Sender,
-	}
-}
-
-func (c *SmsCRuClient) NewSms(to string, text string) *CommonSms {
-	return &CommonSms{
-		Phone:   to,
-		Message: text,
-		Sender: c.Sender,
-	}
-}
 

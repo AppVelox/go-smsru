@@ -1,12 +1,10 @@
 package sms
 
 import (
-	//"net/http"
 	"net/url"
 	"io/ioutil"
 	"log"
 	"encoding/json"
-	//"strconv"
 	"strconv"
 	"errors"
 )
@@ -26,6 +24,18 @@ var SMSCcodeStatus map[int]string = map[int]string{
 	24: "Not enough money",
 	25: "Inaccessible number",
 }
+
+
+
+func (c *SmsCRuClient) NewSms(to string, text string) *CommonSms {
+	return &CommonSms{
+		Phone:   to,
+		Message: text,
+		Sender: c.Sender,
+	}
+}
+
+
 
 
 func (c *SmsCRuClient) makeRequest(endpoint string, params url.Values) (Response, []byte, error) {
@@ -61,6 +71,8 @@ func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 	if len(p.Sender) > 0 {
 		params.Set("sender", p.Sender)
 	}
+
+	log.Printf("Trying to send message: '%s' to %s",p.Message,p.Phone)
 
 	res, body, err := c.makeRequest("/sys/send.php", params)
 	if err != nil {
@@ -104,6 +116,8 @@ func (c *SmsCRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params.Set("id", id)
 	params.Set("phone", phone)
 	params.Set("fmt", "3")
+
+	log.Printf("Trying to get status of message: '%s'",id)
 
 	res, body, err := c.makeRequest("/sys/status.php", params)
 	if err != nil {

@@ -12,6 +12,16 @@ import (
 const IQSMSRU_API_URL = "http://gate.iqsms.ru"
 
 
+
+func (c *IQSMSRuClient) NewSms(to string, text string) *CommonSms {
+	return &CommonSms{
+		Phone:   to,
+		Message: text,
+		Sender: c.Sender,
+	}
+}
+
+
 func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Response, error) {
 	params.Set("login", c.ApiLogin)
 	params.Set("password", c.ApiPassword)
@@ -29,11 +39,8 @@ func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Respons
 		log.Fatal(err)
 	}
 
-	fmt.Println(string(body))
 
 	var messageAndStatus = strings.Split(string(body), "=")
-
-	fmt.Println(messageAndStatus)
 
 	if len(messageAndStatus) != 2 {
 		msg := fmt.Sprintf(string(body))
@@ -43,13 +50,7 @@ func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Respons
 	res := Response{Status: messageAndStatus[1]}
 	res.Id = messageAndStatus[0]
 	return res, nil
-
 }
-
-
-
-
-
 
 func (c *IQSMSRuClient) SmsSend(p *CommonSms) (Response, error) {
 	var params = url.Values{}
@@ -60,6 +61,8 @@ func (c *IQSMSRuClient) SmsSend(p *CommonSms) (Response, error) {
 	if len(p.Sender) > 0 {
 		params.Set("sender", p.Sender)
 	}
+
+	log.Printf("Trying to send message: '%s' to %s",p.Message,p.Phone)
 
 	res, err := c.makeRequest("/send", params)
 	if err != nil {
@@ -75,6 +78,8 @@ func (c *IQSMSRuClient) SmsSend(p *CommonSms) (Response, error) {
 func (c *IQSMSRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params := url.Values{}
 	params.Set("id", id)
+
+	log.Printf("Trying to get status of message: '%s'",id)
 
 	res, err := c.makeRequest("/status", params)
 	if err != nil {
