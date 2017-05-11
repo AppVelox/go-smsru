@@ -6,6 +6,10 @@ import (
 )
 
 var error_no_backend = errors.New("No such backend")
+var error_no_apiid = errors.New("No ApiId")
+var error_no_sender = errors.New("No parameter Sender (it should be at least empty)")
+var error_no_login= errors.New("No parameter Login (it should be at least empty)")
+var error_no_password= errors.New("No parameter Password (it should be at least empty)")
 
 type SmsRuClient struct {
 	ApiId  string       `json:"api_id"`
@@ -35,18 +39,19 @@ type Response struct {
 
 type SMSClient interface {
 	SmsSend(*CommonSms) (Response, error)
-	NewSms(string,string) (*CommonSms)
-	SmsStatus(string,string) (Response,error)
+	NewSms(string, string) (*CommonSms)
+	NewTestSms(string, string) (*CommonSms)
+	SmsStatus(string, string) (Response, error)
 }
 
 type CommonSms struct {
-	Phone      string
-	Message    string
-	Sender     string
+	Phone   string
+	Message string
+	Sender  string
+	Test    bool
 }
 
 func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
-
 
 	if val, ok := backendInfo["backend"]; ok {
 		switch val {
@@ -56,8 +61,19 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 			var c SMSClient = &SmsRuClient{}
 			smsruClient := c.(*SmsRuClient)
 			smsruClient.Http = &http.Client{}
-			smsruClient.ApiId = backendInfo["api_key"].(string)
-			smsruClient.Sender = backendInfo["sender"].(string)
+
+			if val, ok := backendInfo["api_key"]; ok {
+				smsruClient.ApiId = val.(string)
+			} else {
+				return nil, error_no_apiid
+			}
+
+			if val, ok := backendInfo["sender"]; ok {
+				smsruClient.Sender = val.(string)
+			} else {
+				return nil, error_no_sender
+			}
+
 			return smsruClient, nil
 
 		case "iqsmsru":
@@ -65,18 +81,49 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 			var c SMSClient = &IQSMSRuClient{}
 			iqsmsruClient := c.(*IQSMSRuClient)
 			iqsmsruClient.Http = &http.Client{}
-			iqsmsruClient.ApiLogin = backendInfo["login"].(string)
-			iqsmsruClient.ApiPassword = backendInfo["password"].(string)
-			iqsmsruClient.Sender = backendInfo["sender"].(string)
+
+			if val, ok := backendInfo["login"]; ok {
+				iqsmsruClient.ApiLogin = val.(string)
+			} else {
+				return nil, error_no_login
+			}
+
+			if val, ok := backendInfo["password"]; ok {
+				iqsmsruClient.ApiPassword = val.(string)
+			} else {
+				return nil, error_no_password
+			}
+
+			if val, ok := backendInfo["sender"]; ok {
+				iqsmsruClient.Sender = val.(string)
+			} else {
+				return nil, error_no_sender
+			}
+
 			return iqsmsruClient, nil
 		case "smscru":
 
 			var c SMSClient = &SmsCRuClient{}
 			smscruClient := c.(*SmsCRuClient)
 			smscruClient.Http = &http.Client{}
-			smscruClient.ApiLogin = backendInfo["login"].(string)
-			smscruClient.ApiPassword = backendInfo["password"].(string)
-			smscruClient.Sender = backendInfo["sender"].(string)
+
+			if val, ok := backendInfo["login"]; ok {
+				smscruClient.ApiLogin = val.(string)
+			} else {
+				return nil, error_no_login
+			}
+
+			if val, ok := backendInfo["password"]; ok {
+				smscruClient.ApiPassword = val.(string)
+			} else {
+				return nil, error_no_password
+			}
+
+			if val, ok := backendInfo["sender"]; ok {
+				smscruClient.Sender = val.(string)
+			} else {
+				return nil, error_no_sender
+			}
 			return smscruClient, nil
 		}
 	}
@@ -84,6 +131,3 @@ func NewSmsClient(backendInfo map[string]interface{}) (SMSClient, error) {
 	return nil, error_no_backend
 
 }
-
-
-

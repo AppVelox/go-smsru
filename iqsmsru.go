@@ -11,16 +11,24 @@ import (
 
 const IQSMSRU_API_URL = "http://gate.iqsms.ru"
 
-
+const StatusNoBalance = "not enough credits"
 
 func (c *IQSMSRuClient) NewSms(to string, text string) *CommonSms {
 	return &CommonSms{
 		Phone:   to,
 		Message: text,
-		Sender: c.Sender,
+		Sender:  c.Sender,
 	}
 }
 
+func (c *IQSMSRuClient) NewTestSms(to string, text string) *CommonSms {
+	return &CommonSms{
+		Phone:   to,
+		Message: text,
+		Sender:  c.Sender,
+		Test:    true,
+	}
+}
 
 func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Response, error) {
 	params.Set("login", c.ApiLogin)
@@ -38,7 +46,6 @@ func (c *IQSMSRuClient) makeRequest(endpoint string, params url.Values) (Respons
 	if err != nil {
 		log.Fatal(err)
 	}
-
 
 	var messageAndStatus = strings.Split(string(body), "=")
 
@@ -62,10 +69,19 @@ func (c *IQSMSRuClient) SmsSend(p *CommonSms) (Response, error) {
 		params.Set("sender", p.Sender)
 	}
 
-	log.Printf("Trying to send message: '%s' to %s",p.Message,p.Phone)
+	log.Printf("Trying to send message: '%s' to %s", p.Message, p.Phone)
 
 	res, err := c.makeRequest("/send", params)
 	if err != nil {
+		if p.Test {
+			error_msg := err.Error()
+			if error_msg == StatusNoBalance {
+				res.Id = "Mock_id"
+				res.Phone = p.Phone
+				res.Status = error_msg
+				return res, nil
+			}
+		}
 		return Response{}, err
 	}
 
@@ -79,7 +95,7 @@ func (c *IQSMSRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params := url.Values{}
 	params.Set("id", id)
 
-	log.Printf("Trying to get status of message: '%s'",id)
+	log.Printf("Trying to get status of message: '%s'", id)
 
 	res, err := c.makeRequest("/status", params)
 	if err != nil {

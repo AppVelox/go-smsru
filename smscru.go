@@ -25,18 +25,22 @@ var SMSCcodeStatus map[int]string = map[int]string{
 	25: "Inaccessible number",
 }
 
-
-
 func (c *SmsCRuClient) NewSms(to string, text string) *CommonSms {
 	return &CommonSms{
 		Phone:   to,
 		Message: text,
-		Sender: c.Sender,
+		Sender:  c.Sender,
 	}
 }
 
-
-
+func (c *SmsCRuClient) NewTestSms(to string, text string) *CommonSms {
+	return &CommonSms{
+		Phone:   to,
+		Message: text,
+		Sender:  c.Sender,
+		Test:    true,
+	}
+}
 
 func (c *SmsCRuClient) makeRequest(endpoint string, params url.Values) (Response, []byte, error) {
 	params.Set("login", c.ApiLogin)
@@ -59,8 +63,6 @@ func (c *SmsCRuClient) makeRequest(endpoint string, params url.Values) (Response
 
 }
 
-
-
 func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 	var params = url.Values{}
 
@@ -68,11 +70,15 @@ func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 	params.Set("fmt", "3")
 	params.Set("mes", p.Message)
 
+	if p.Test {
+		params.Set("cost", "1")
+	}
+
 	if len(p.Sender) > 0 {
 		params.Set("sender", p.Sender)
 	}
 
-	log.Printf("Trying to send message: '%s' to %s",p.Message,p.Phone)
+	log.Printf("Trying to send message: '%s' to %s", p.Message, p.Phone)
 
 	res, body, err := c.makeRequest("/sys/send.php", params)
 	if err != nil {
@@ -84,6 +90,7 @@ func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 		Cnt       int          `json:"cnt"`
 		Error     string       `json:"error"`
 		ErrorCode int          `json:"error_code"`
+		Cost      string       `json:"cost"`
 	}
 
 	err = json.Unmarshal(body, &f)
@@ -93,6 +100,8 @@ func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 	}
 
 	res.Phone = p.Phone
+
+
 
 	if f.Id > 0 {
 		res.Id = strconv.Itoa(f.Id)
@@ -104,11 +113,12 @@ func (c *SmsCRuClient) SmsSend(p *CommonSms) (Response, error) {
 	} else {
 		res.Status = "OK"
 	}
+	if len(f.Cost) > 0 {
+		res.Id = "Mock_Id"
+	}
 
 	return res, nil
 }
-
-
 
 // SmsStatus will get a status of message
 func (c *SmsCRuClient) SmsStatus(id string, phone string) (Response, error) {
@@ -117,7 +127,7 @@ func (c *SmsCRuClient) SmsStatus(id string, phone string) (Response, error) {
 	params.Set("phone", phone)
 	params.Set("fmt", "3")
 
-	log.Printf("Trying to get status of message: '%s'",id)
+	log.Printf("Trying to get status of message: '%s'", id)
 
 	res, body, err := c.makeRequest("/sys/status.php", params)
 	if err != nil {

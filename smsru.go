@@ -61,6 +61,15 @@ func (c *SmsRuClient) NewSms(to string, text string) *CommonSms {
 	}
 }
 
+func (c *SmsRuClient) NewTestSms(to string, text string) *CommonSms {
+	return &CommonSms{
+		Phone:   to,
+		Message: text,
+		Sender: c.Sender,
+		Test: true,
+	}
+}
+
 
 func (c *SmsRuClient) makeRequest(endpoint string, params url.Values) (Response, []string, error) {
 	params.Set("api_id", c.ApiId)
@@ -106,6 +115,10 @@ func (c *SmsRuClient) SmsSend(p *CommonSms) (Response, error) {
 	var params = url.Values{}
 	params.Set("to", p.Phone)
 	params.Set("text", p.Message)
+
+	if p.Test {
+		params.Set("test","1")
+	}
 
 	if len(p.Sender) > 0 {
 		params.Set("from", p.Sender)
