@@ -77,4 +77,6 @@ fabric.properties
 # Sonarlint plugin
 .idea/sonarlint
 
+script.sh
+
 # End of https://www.gitignore.io/api/go,jetbrains
